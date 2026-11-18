@@ -1,0 +1,231 @@
+{
+ "title": "Sample home",
+ "theme": "auto",
+ "locale": "en-GB",
+ "clock_24h": true,
+ "header": {
+  "weather": "weather.home",
+  "heating": "switch.heating",
+  "alarm": "alarm_control_panel.home"
+ },
+ "bins": [
+  {
+   "entity": "calendar.recycling",
+   "name": "Recycling",
+   "colour": "#3f8f5b"
+  }
+ ],
+ "doorbell": {
+  "when": "binary_sensor.doorbell",
+  "camera": "camera.entrance",
+  "title": "Visitor"
+ },
+ "rooms": {
+  "Hall": {
+   "temperature": "sensor.hall_temperature",
+   "humidity": "sensor.hall_humidity",
+   "climate": "climate.hall",
+   "heating_demand": "sensor.hall_heating_demand",
+   "presence": "binary_sensor.hall_presence",
+   "motion": [
+    "binary_sensor.hall_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.hall",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": []
+  },
+  "Utility": {
+   "temperature": "sensor.utility_temperature",
+   "humidity": "sensor.utility_humidity",
+   "climate": "climate.utility",
+   "heating_demand": "sensor.utility_heating_demand",
+   "presence": "binary_sensor.utility_presence",
+   "motion": [
+    "binary_sensor.utility_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.utility",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.utility_window",
+     "name": "Window",
+     "window": 0
+    }
+   ]
+  },
+  "Kitchen": {
+   "temperature": "sensor.kitchen_temperature",
+   "humidity": "sensor.kitchen_humidity",
+   "climate": "climate.kitchen",
+   "heating_demand": "sensor.kitchen_heating_demand",
+   "presence": "binary_sensor.kitchen_presence",
+   "motion": [
+    "binary_sensor.kitchen_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.kitchen",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.kitchen_window_1",
+     "name": "Window 1",
+     "window": 1
+    },
+    {
+     "entity": "binary_sensor.kitchen_window_2",
+     "name": "Window 2",
+     "window": 2
+    },
+    {
+     "entity": "binary_sensor.kitchen_window_3",
+     "name": "Window 3",
+     "window": 3
+    }
+   ]
+  },
+  "Living Room": {
+   "temperature": "sensor.living_room_temperature",
+   "humidity": "sensor.living_room_humidity",
+   "climate": "climate.living_room",
+   "heating_demand": "sensor.living_room_heating_demand",
+   "presence": "binary_sensor.living_room_presence",
+   "motion": [
+    "binary_sensor.living_room_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.living_room",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.living_room_window_1",
+     "name": "Window 1",
+     "window": 4
+    },
+    {
+     "entity": "binary_sensor.living_room_window_2",
+     "name": "Window 2",
+     "window": 5
+    }
+   ]
+  },
+  "Landing": {
+   "temperature": "sensor.landing_temperature",
+   "humidity": "sensor.landing_humidity",
+   "climate": "climate.landing",
+   "heating_demand": "sensor.landing_heating_demand",
+   "presence": "binary_sensor.landing_presence",
+   "motion": [
+    "binary_sensor.landing_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.landing",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.landing_window",
+     "name": "Window",
+     "window": 12
+    }
+   ]
+  },
+  "Main Bedroom": {
+   "temperature": "sensor.main_bedroom_temperature",
+   "humidity": "sensor.main_bedroom_humidity",
+   "climate": "climate.main_bedroom",
+   "heating_demand": "sensor.main_bedroom_heating_demand",
+   "presence": "binary_sensor.main_bedroom_presence",
+   "motion": [
+    "binary_sensor.main_bedroom_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.main_bedroom",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.main_bedroom_window_1",
+     "name": "Window 1",
+     "window": 8
+    },
+    {
+     "entity": "binary_sensor.main_bedroom_window_2",
+     "name": "Window 2",
+     "window": 9
+    }
+   ]
+  },
+  "Bedroom 2": {
+   "temperature": "sensor.bedroom_2_temperature",
+   "humidity": "sensor.bedroom_2_humidity",
+   "climate": "climate.bedroom_2",
+   "heating_demand": "sensor.bedroom_2_heating_demand",
+   "presence": "binary_sensor.bedroom_2_presence",
+   "motion": [
+    "binary_sensor.bedroom_2_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.bedroom_2",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.bedroom_2_window",
+     "name": "Window",
+     "window": 6
+    }
+   ]
+  },
+  "Bedroom 3": {
+   "temperature": "sensor.bedroom_3_temperature",
+   "humidity": "sensor.bedroom_3_humidity",
+   "climate": "climate.bedroom_3",
+   "heating_demand": "sensor.bedroom_3_heating_demand",
+   "presence": "binary_sensor.bedroom_3_presence",
+   "motion": [
+    "binary_sensor.bedroom_3_motion"
+   ],
+   "lights": [
+    {
+     "entity": "light.bedroom_3",
+     "name": "Ceiling light",
+     "icon": "ceiling-light"
+    }
+   ],
+   "windows": [
+    {
+     "entity": "binary_sensor.bedroom_3_window",
+     "name": "Window",
+     "window": 7
+    }
+   ]
+  }
+ }
+}

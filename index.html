@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Floor Panel: your floor plan as a live Home Assistant wall panel (demo)</title>
+<meta name="description" content="Try Floor Panel in your browser: a lightweight Home Assistant wall panel that shows your own floor plan live, with room temperatures, lights, heating and open windows. Demo house is fictional.">
+<meta property="og:title" content="Floor Panel: your floor plan as a live Home Assistant wall panel">
+<meta property="og:description" content="Live demo with a fictional house. Draw your own plan with the starter kit, or have it made from your plan.">
+<meta property="og:image" content="img/social.jpg">
+<link rel="canonical" href="https://milo2407.github.io/floor-panel-demo/">
+<style>
+  :root { --ink: #1c2026; --muted: #5e6670; --accent: #e0603a; --paper: #faf6f1; --card: #fff; --line: #e8e1d8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 17px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: linear-gradient(160deg, #faf8f5 0%, #f6e9e1 100%) fixed; }
+  main { max-width: 1180px; margin: 0 auto; padding: 48px 24px 64px; }
+  .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .12em; text-transform: uppercase; font-size: 13px; }
+  h1 { font-size: clamp(34px, 5vw, 56px); line-height: 1.05; margin: 10px 0 14px; letter-spacing: -.02em; }
+  .lede { font-size: 20px; color: var(--muted); max-width: 720px; margin: 0 0 28px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 36px; }
+  .btn { display: inline-block; padding: 12px 20px; border-radius: 999px; text-decoration: none; font-weight: 600; border: 2px solid var(--ink); color: var(--ink); background: transparent; }
+  .btn.primary { background: var(--ink); color: #fff; }
+  .btn small { font-weight: 400; opacity: .8; }
+  .demo { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 18px; box-shadow: 0 12px 40px rgba(60,40,20,.08); }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; margin-bottom: 14px; font-size: 15px; }
+  .group { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .group span { color: var(--muted); margin-right: 2px; }
+  .chip { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; color: var(--ink); }
+  .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .screen-wrap { display: flex; justify-content: center; background: #2a2622; border-radius: 16px; padding: 22px; overflow: auto; }
+  .screen { border: 0; background: #000; border-radius: 10px; transform-origin: top center; display: block; }
+  .note { color: var(--muted); font-size: 14px; margin-top: 10px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; margin: 44px 0; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; }
+  .card h3 { margin: 0 0 6px; font-size: 19px; }
+  .card p { margin: 0; color: var(--muted); font-size: 16px; }
+  h2 { font-size: 30px; margin: 56px 0 10px; letter-spacing: -.01em; }
+  .split { display: grid; grid-template-columns: 1.3fr 1fr; gap: 28px; align-items: center; }
+  .split img { width: 100%; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 8px 28px rgba(0,0,0,.08); }
+  ul.ticks { padding-left: 0; list-style: none; }
+  ul.ticks li { padding-left: 28px; position: relative; margin: 8px 0; }
+  ul.ticks li::before { content: "✓"; position: absolute; left: 4px; color: var(--accent); font-weight: 700; }
+  .offers { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; margin-top: 18px; }
+  .offer { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 24px; display: flex; flex-direction: column; gap: 10px; }
+  .offer .price { font-size: 32px; font-weight: 800; }
+  .offer p { color: var(--muted); margin: 0; flex: 1; }
+  footer { margin-top: 60px; color: var(--muted); font-size: 14px; border-top: 1px solid var(--line); padding-top: 18px; }
+  footer a { color: inherit; }
+  @media (max-width: 820px) { .split { grid-template-columns: 1fr; } main { padding-top: 28px; } }
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Wall panel for Home Assistant · live demo</div>
+  <h1>Your floor plan, live on the wall.</h1>
+  <p class="lede">Floor Panel is a lightweight Home Assistant wall panel built around your own floor plan. Rooms are coloured by temperature, lights and heating glow where they're on, open windows swing open, and a tap on a room opens its controls. Try it below with a made-up house.</p>
+  <div class="cta">
+    <a class="btn primary" href="https://brightglen.gumroad.com/l/aoesxw">Get the starter kit · €19</a>
+    <a class="btn" href="https://brightglen.gumroad.com/l/vnaey">Have it made from your plan · €49</a>
+  </div>
+
+  <section class="demo" aria-label="Interactive demo">
+    <div class="controls">
+      <div class="group" id="scene"><span>Scene</span>
+        <button class="chip on" data-q="">Day</button>
+        <button class="chip" data-q="&night=1">Night</button>
+        <button class="chip" data-q="&alerts=1">Heating, open window &amp; bins</button>
+        <button class="chip" data-q="&visitor=1">Doorbell</button>
+      </div>
+      <div class="group" id="size"><span>Screen</span>
+        <button class="chip on" data-w="1024" data-h="600">Tablet</button>
+        <button class="chip" data-w="720" data-h="720">Square wall display</button>
+        <button class="chip" data-w="600" data-h="960">Portrait</button>
+      </div>
+    </div>
+    <div class="screen-wrap" id="wrap"><iframe class="screen" id="screen" title="Floor Panel demo" src="panel/index.html?demo=1" width="1024" height="600"></iframe></div>
+    <p class="note">It's live: tap a room for its controls, switch floors, try All off and Bedtime. Everything here is made-up data for a fictional two-storey house; this page doesn't connect to any Home Assistant.</p>
+  </section>
+
+  <div class="grid">
+    <div class="card"><h3>Built for slow wall screens</h3><p>One small page of about 80 KB instead of a full dashboard, so old tablets and wall displays show your home straight away.</p></div>
+    <div class="card"><h3>Your rooms, not a template</h3><p>Every room, door, window and staircase comes from your plan, across as many floors as you have.</p></div>
+    <div class="card"><h3>No add-ons on the screen</h3><p>Copy a folder into Home Assistant's www folder, sign in once, done. No custom cards, no YAML, no CDN.</p></div>
+    <div class="card"><h3>Private by design</h3><p>It uses Home Assistant's normal login; no token or password is stored in any file. Bathrooms always stay plain and can't be tapped.</p></div>
+  </div>
+
+  <h2>Draw your own home in the browser</h2>
+  <div class="split">
+    <img src="img/editor.png" alt="The Floor Panel plan editor with the demo house's ground floor drawn as rooms, doors and windows" loading="lazy">
+    <div>
+      <p>The starter kit includes a plan editor. Open a photo or scan of your floor plan, click the corners of each room, name it, mark doors and windows, and save. Lines snap straight and to nearby corners.</p>
+      <ul class="ticks">
+        <li>Your plan picture never leaves your browser</li>
+        <li>Several floors with a floor switcher on the panel</li>
+        <li>A setup view that numbers every window for your sensors</li>
+        <li>Rooms point at your own sensors, lights and radiators in one config file</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Two ways to get yours</h2>
+  <div class="offers">
+    <div class="offer">
+      <div class="eyebrow">Do it yourself</div>
+      <div class="price">€19</div>
+      <p>The panel, the plan editor, the demo house and a step-by-step guide. You draw your plan and map your entities. Instant download.</p>
+      <a class="btn primary" href="https://brightglen.gumroad.com/l/aoesxw">Get the starter kit</a>
+    </div>
+    <div class="offer">
+      <div class="eyebrow">Made for you</div>
+      <div class="price">€49</div>
+      <p>Send a picture of your floor plan and we trace it into a ready panel for you, with a proof to check before delivery.</p>
+      <a class="btn" href="https://brightglen.gumroad.com/l/vnaey">Order a made-for-you panel</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>Made by Brightglen · <a href="https://brightglen.gumroad.com/">Gumroad shop</a> · <a href="https://www.etsy.com/shop/Brightglen">Etsy shop</a></p>
+    <p>Requires Home Assistant 2024.1 or newer and a screen with a browser from about 2017 or later. Tested in demo mode in desktop browsers; not yet tried on every tablet. The panel was adapted from a working wall display and made with AI assistance. The demo house is fictional.</p>
+    <p>Independent product, not affiliated with or endorsed by the Home Assistant project. Icons: Material Design Icons (Apache 2.0), see <a href="panel/THIRD-PARTY-NOTICES.txt">notices</a>. © 2026 Brightglen, all rights reserved.</p>
+  </footer>
+</main>
+<script>
+(function () {
+  var screen = document.getElementById('screen'), wrap = document.getElementById('wrap'), q = '', w = 1024, h = 600;
+  function fit() {
+    var room = wrap.clientWidth - 44, scale = Math.min(1, room / w);
+    screen.width = w; screen.height = h;
+    screen.style.transform = 'scale(' + scale + ')';
+    wrap.style.height = (h * scale + 44) + 'px';
+  }
+  function load() { screen.src = 'panel/index.html?demo=1' + q; fit(); }
+  function pick(group, attr, cb) {
+    document.querySelectorAll('#' + group + ' .chip').forEach(function (b) {
+      b.addEventListener('click', function () {
+        document.querySelectorAll('#' + group + ' .chip').forEach(function (x) { x.classList.toggle('on', x === b); });
+        cb(b); load();
+      });
+    });
+  }
+  pick('scene', 'q', function (b) { q = b.dataset.q; });
+  pick('size', 'w', function (b) { w = +b.dataset.w; h = +b.dataset.h; });
+  window.addEventListener('resize', fit);
+  fit();
+})();
+</script>
+</body>
+</html>

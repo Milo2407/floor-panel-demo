@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,"><title>Floor Panel</title><style>
+  html { font-size: 3.1vmin; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; height: 100vh; overflow: hidden; font-family: Roboto, "Segoe UI", system-ui, sans-serif; -webkit-user-select: none; user-select: none; }
+  body.ready { transition: background 1.5s, color 1.5s; }
+  svg.i { width: 1em; height: 1em; fill: currentColor; vertical-align: middle; }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .hidden { display: none !important; }
+
+  /* Two palettes, switched by sun.sun. Day is architect's paper, night is ink. */
+  body { --bg: #f2eee6; --ink: #25303a; --soft: #6b747c; --card: #e7e1d6; --card2: #ddd6c9; --wall: #2f3a42; --glass: #9cc7da; --floor: #f7f4ee; --accent: #d9622b; --ok: #3f8f5b; --warn: #c7771b; --cool: #2f7fb8; --glow: 255, 196, 92; }
+  body.night { --bg: #0c1320; --ink: #dde6ee; --soft: #7f8c99; --card: #152033; --card2: #1c2a40; --wall: #8ea3b8; --glass: #3d6f8f; --floor: #111b2c; --accent: #ff8a50; --ok: #6cc38a; --warn: #ffb74d; --cool: #6fb6ff; --glow: 255, 186, 92; }
+  body { background: var(--bg); color: var(--ink); }
+
+  #app { height: 100vh; padding: 0.9rem 1rem 0.8rem; display: flex; flex-direction: column; }
+
+  /* header */
+  header { display: flex; align-items: flex-end; position: relative; }
+  /* kiosk toggle sits in the empty middle of the header so it never moves the layout */
+  #kiosk { position: absolute; left: 50%; top: 1rem; width: 2.6rem; height: 2.6rem; margin-left: -1.3rem; border-radius: 50%; background: var(--card); display: flex; align-items: center; justify-content: center; }
+  #kiosk svg { font-size: 1.4rem; color: var(--soft); }
+  #kiosk.on svg { color: var(--cool); }
+  .time { font-size: 3.8rem; font-weight: 300; line-height: 0.95; letter-spacing: -0.03em; }
+  .date { font-size: 1.05rem; color: var(--soft); margin-top: 0.2rem; }
+  .wx { margin-left: auto; text-align: right; }
+  .wx .now { font-size: 1.7rem; display: flex; align-items: center; justify-content: flex-end; }
+  .wx .now svg { font-size: 2.2rem; margin-right: 0.35rem; color: var(--accent); }
+  .wx .sub { font-size: 0.95rem; color: var(--soft); margin-top: 0.15rem; }
+  #sunarc { display: block; width: 9.5rem; height: 2.1rem; margin: 0.15rem 0 0 auto; overflow: visible; }
+
+  /* plan */
+  #planwrap { position: relative; margin-top: 0.5rem; }
+  #plan { display: block; width: 100%; height: auto; overflow: visible; }
+  #plan .wall { fill: var(--wall); }
+  #plan .room { stroke: var(--wall); stroke-width: var(--wall-w); stroke-linejoin: miter; }
+  body.live #plan .room { transition: fill 1.2s; }   /* fade changes, but not the first paint */
+  #plan .outer { fill: var(--wall); stroke: var(--wall); stroke-width: calc(var(--wall-w) * 3.2); stroke-linejoin: miter; }
+  #plan * { pointer-events: none; }
+  #plan .room.tap { cursor: pointer; pointer-events: all; }
+  #plan .room.pressed { stroke: var(--accent); }
+  #plan .wet { fill: var(--card); }
+  #plan .store { fill: url(#hatch); }
+  #plan .door { stroke: var(--floor); stroke-width: var(--door-w); }
+  #plan .door.exit { stroke-width: var(--exit-w); }
+  body.night #plan .door { stroke: #253246; }   /* an opening, not a black block */
+  #plan .tread { stroke: var(--soft); stroke-width: 1.4; opacity: 0.55; }
+  #plan .stairs { fill: var(--soft); opacity: 0.1; }
+  #plan .spine { fill: var(--wall); opacity: 0.75; }
+  #plan .win { fill: var(--glass); }
+  #plan .win.open { fill: #26c6da; }
+  #plan .winopen { stroke: #26c6da; stroke-width: calc(var(--wall-w) * .9); stroke-linecap: round; }
+  #plan .rad { fill: var(--soft); opacity: 0.55; }
+  #plan .rad.on { fill: #ff7043; opacity: 1; }
+  #plan .glow { transition: opacity 0.8s; }
+  #plan text { fill: var(--ink); font-family: inherit; paint-order: stroke; stroke: var(--floor); stroke-width: 3px; stroke-opacity: 0.35; stroke-linejoin: round; }
+  #plan .rn { font-size: 18px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--soft); }
+  #plan .rt { font-size: 46px; font-weight: 300; }
+  #plan .rh { font-size: 17px; fill: var(--soft); }
+  #plan .small { font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; fill: var(--soft); }
+  #plan .flag { font-size: 15px; font-weight: 600; }
+  #plan .f-win { fill: #1ba7b8; } #plan .f-heat { fill: #ff7043; } #plan .f-who { fill: var(--ok); } #plan .f-media { fill: #9575cd; } #plan .f-motion { fill: #26a6b8; }
+  #plan .motion { fill: #26c6da; opacity: 0; transition: opacity 0.6s; }
+  #plan .motion.on { opacity: 0.18; }
+
+  /* status chips */
+  .chips { display: flex; flex-wrap: wrap; margin-top: 0.7rem; height: 4.9rem; overflow: hidden; align-content: flex-start; }
+  .chip { display: flex; align-items: center; height: 2.2rem; padding: 0 0.8rem; border-radius: 1.1rem; background: var(--card); font-size: 0.95rem; margin: 0 0.45rem 0.45rem 0; white-space: nowrap; }
+  .chip svg { font-size: 1.25rem; margin-right: 0.35rem; }
+  .chip.ok svg { color: var(--ok); } .chip.warn { background: rgba(255, 152, 0, 0.18); } .chip.warn svg { color: var(--warn); }
+  .chip.cool svg { color: var(--cool); } .chip.hot svg { color: var(--accent); }
+  .chip.warn.tap { background: rgba(255, 152, 0, 0.28); font-weight: 500; }
+  .chip .pill { margin-left: 0.55rem; background: var(--accent); color: #fff; border-radius: 0.8rem; padding: 0.15rem 0.65rem; font-size: 0.9rem; font-weight: 600; }
+
+  /* actions */
+  .actions { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; grid-column-gap: 0.6rem; }
+  .act { position: relative; display: flex; align-items: center; justify-content: center; height: 3.3rem; background: var(--card); border-radius: 1.1rem; font-size: 0.98rem; transition: background 0.3s; white-space: nowrap; }
+  .act svg { font-size: 1.5rem; margin-right: 0.35rem; }
+  .act.on { background: rgba(var(--glow), 0.3); }
+  .act.arm { background: var(--accent); color: #fff; }
+  .act .badge { position: absolute; top: -0.45rem; right: -0.2rem; min-width: 1.3rem; height: 1.3rem; border-radius: 0.65rem; background: var(--accent); color: #fff; font-size: 0.8rem; line-height: 1.3rem; padding: 0 0.3rem; }
+  #conn { position: fixed; top: 0.25rem; left: 50%; width: 0.5rem; height: 0.5rem; margin-left: -0.25rem; border-radius: 50%; background: transparent; }
+  #conn.offline { background: #ef5350; } #conn.connecting { background: #ffb300; }
+
+  /* sheets */
+  .scrim { position: fixed; left: 0; top: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.45); display: flex; align-items: flex-end; z-index: 5; }
+  .sheet { width: 100%; max-height: 90vh; overflow: auto; background: var(--bg); border-radius: 1.5rem 1.5rem 0 0; padding: 1.1rem 1.2rem 1.4rem; }
+  .sheet h2 { margin: 0; font-size: 1.6rem; font-weight: 500; display: flex; align-items: center; }
+  .sheet h2 .x { margin-left: auto; font-size: 1.9rem; color: var(--soft); }
+  .sheet .meta { color: var(--soft); margin: 0.2rem 0 0.8rem; font-size: 1.05rem; }
+  .rows > * + * { margin-top: 0.5rem; }
+  .row { display: flex; align-items: center; width: 100%; background: var(--card); border-radius: 1rem; padding: 0.65rem 0.85rem; font-size: 1.1rem; text-align: left; }
+  .row > svg { font-size: 1.5rem; margin-right: 0.7rem; color: var(--soft); flex: none; }
+  .row.on > svg { color: rgb(var(--glow)); } .row.open > svg { color: #26c6da; } .row.bad > svg { color: var(--warn); } .row.good > svg { color: var(--ok); }
+  .row .st { margin-left: auto; color: var(--soft); font-size: 1rem; padding-left: 0.6rem; white-space: nowrap; }
+  .row .go { margin-left: auto; background: var(--accent); color: #fff; border-radius: 0.7rem; padding: 0.4rem 0.8rem; font-size: 0.98rem; flex: none; }
+  .row .go.sec { background: var(--card2); color: var(--ink); margin-left: 0.4rem; }
+  .row .go.confirm { background: #c62828; }
+  .row input[type=range] { flex: 1; margin: 0 0.4rem 0 0.8rem; height: 2rem; accent-color: var(--accent); }
+  .sw { width: 3.2rem; height: 1.8rem; border-radius: 0.9rem; background: var(--card2); position: relative; margin-left: auto; flex: none; }
+  .sw:after { content: ''; position: absolute; left: 0.2rem; top: 0.2rem; width: 1.4rem; height: 1.4rem; border-radius: 50%; background: var(--soft); transition: left 0.2s; }
+  .on .sw { background: rgba(var(--glow), 0.55); } .on .sw:after { left: 1.6rem; background: rgb(var(--glow)); }
+  .trv { display: flex; align-items: center; background: var(--card); border-radius: 1rem; padding: 0.7rem; }
+  .trv .pm { width: 3.4rem; height: 3.4rem; border-radius: 50%; background: var(--card2); font-size: 1.9rem; display: flex; align-items: center; justify-content: center; }
+  .trv .tgt { flex: 1; text-align: center; }
+  .trv .tgt .v { font-size: 2.5rem; font-weight: 300; }
+  .trv .tgt .a { color: var(--soft); font-size: 0.95rem; }
+  .trv.heating .tgt .a { color: var(--accent); }
+  .trv .nm { width: 8.5rem; font-size: 1.05rem; }
+  .trv .nm small { display: block; color: var(--soft); font-size: 0.9rem; }
+  .trv.compact .tgt .v { font-size: 1.8rem; }
+  .trv.compact .pm { width: 2.8rem; height: 2.8rem; font-size: 1.5rem; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-column-gap: 0.5rem; margin: 0.55rem 0 0.8rem; }
+  .modes button { background: var(--card); border-radius: 0.8rem; padding: 0.55rem 0; color: var(--soft); }
+  .modes button.sel { background: var(--accent); color: #fff; font-weight: 600; }
+  .allclear { text-align: center; padding: 1.4rem 0 0.6rem; color: var(--ok); font-size: 1.3rem; }
+  .allclear svg { font-size: 3rem; display: block; margin: 0 auto 0.4rem; }
+
+  #visitor .sheet { padding: 0.8rem; border-radius: 1.4rem; margin: 0 3% 4vh; }
+  #visitor img { width: 100%; border-radius: 1rem; display: block; background: #000; min-height: 20rem; object-fit: cover; }
+
+  #app { gap: .45rem; }
+  header, .actions { flex-shrink: 0; }
+  #planwrap { flex: 1; min-height: 0; margin: 0; }
+  #plan { width: 100%; height: 100%; overflow: hidden; }
+  .actions { grid-template-columns: repeat(3, 1fr); margin-top: 0; }
+  .chips { height: auto; min-height: 2.2rem; flex-wrap: nowrap; flex-shrink: 0; margin-top: 0; overflow: hidden; }
+  .chips .chip { margin-bottom: 0; flex-shrink: 0; }
+  /* landscape tablets: the plan takes the left side at full height */
+  @media (min-aspect-ratio: 4/3) {
+    #app { display: grid; grid-template-columns: 1.4fr 1fr; grid-template-rows: auto auto 1fr auto;
+           grid-template-areas: "plan header" "plan floors" "plan chips" "plan actions"; column-gap: 1.2rem; row-gap: .7rem; }
+    header { grid-area: header; } #floors { grid-area: floors; } #planwrap { grid-area: plan; }
+    #chips { grid-area: chips; flex-wrap: wrap; align-content: flex-start; min-height: 0; }
+    #chips .chip { margin-bottom: .45rem; }
+    .actions { grid-area: actions; }
+  }
+  .chip { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  #floors { display: flex; overflow-x: auto; flex-shrink: 0; gap: .4rem; }
+  #floors button { background: var(--card); border-radius: .7rem; padding: .3rem .7rem; white-space: nowrap; }
+  #floors button.sel { background: var(--accent); color: white; }
+  #problems { background: #8a2424; color: white; border-radius: .7rem; padding: .5rem; max-height: 5rem; overflow: auto; flex-shrink: 0; }
+  .setup { max-width: 38rem; padding: 2rem; margin: auto; font-size: 1rem; }
+  #plan .win { stroke: var(--glass); stroke-width: var(--win-w); }
+  #plan .win.open { stroke: #26c6da; }
+  #plan .setup-label { fill: var(--accent); font-weight: 700; }
+  #plan .rn { letter-spacing: .02em; }
+  #plan .room:focus { stroke: var(--accent); outline: none; }
+  .row span { overflow-wrap: anywhere; min-width: 0; }
+  .row .st { white-space: normal; }
+  .trv .nm { width: 7rem; overflow-wrap: anywhere; }
+  #visitor .sheet { max-height: 90vh; }
+  #visitor img { min-height: 0; max-height: 65vh; object-fit: contain; }
+  .sheet { overflow-wrap: anywhere; }
+  @media (min-aspect-ratio: 3/2) { html { font-size: 2.6vmin; } .chips { max-height: 2.7rem; } }
+</style></head><body>
+<span id="conn" class="connecting"></span>
+<div id="app" data-fit>
+<div id="problems" class="hidden" role="alert"></div>
+<header data-fit><div><div class="time" id="time"></div><div class="date" id="date"></div></div>
+<div class="wx"><div class="now" id="wxnow"></div><svg id="sunarc" viewBox="0 0 190 48"></svg><div class="sub" id="wxsub"></div></div></header>
+<nav id="floors" aria-label="Floor" class="hidden" data-fit></nav>
+<div id="planwrap" data-fit><svg id="plan" aria-label="Floor plan" data-fit></svg></div>
+<div class="chips" id="chips" data-fit></div>
+<div class="actions" data-fit><button class="act" id="a-off"></button><button class="act" id="a-heat"></button><button class="act" id="a-bed"></button></div>
+</div>
+<div class="scrim hidden" id="scrim"><div class="sheet" id="sheet" role="dialog" aria-label="Room controls" data-fit></div></div>
+<div class="scrim hidden" id="visitor"><div class="sheet" data-fit><h2><span id="v-title">Visitor</span><button class="x" id="v-close" aria-label="Close">×</button></h2><img id="v-img" alt="Doorbell camera"></div></div>
+<script>if (/[?&]demo=1/.test(location.search)) document.write('<script src="demo.js?v=1"><\/script>');</script>
+<script src="icons.js?v=1"></script><script src="ha-lite.js?v=1"></script>
+<script>
+'use strict';
+var ICONS = window.WALL_ICONS || {};
+/* @ICON-LIST: weather-night weather-cloudy weather-fog weather-hail weather-lightning weather-lightning-rainy weather-partly-cloudy weather-pouring weather-rainy weather-snowy weather-snowy-rainy weather-sunny weather-windy weather-windy-variant alert-circle-outline ceiling-light lamp floor-lamp desk-lamp lightbulb stairs speaker blinds blinds-open window-open-variant window-closed-variant radiator trash-can-outline shield-check shield-off-outline account thermometer motion-sensor lightbulb-group-off-outline lightbulb-group-outline close minus plus check-circle-outline @ */
+function ic(name) { return '<svg class="i" viewBox="0 0 24 24"><path d="' + (ICONS[name] || '') + '"/></svg>'; }
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+var C, P, ha, S = {}, ROOMS = [], ENTITIES = [], ROLE = Object.create(null), PROBLEMS = [];
+var floor, floors, openSheet = null, armed = false, armTimer, visitorDismissed = false, camTimer;
+var query = new URLSearchParams(location.search), DEMO = query.get('demo') === '1', SETUP = query.get('setup') === '1';
+window.__fw = {ready: false, entities: ENTITIES, problems: PROBLEMS};
+function st(id) { return S[id] ? S[id].state : undefined; }
+function at(id, key) { return S[id] ? S[id].attributes[key] : undefined; }
+function num(id) { var v = parseFloat(st(id)); return isNaN(v) ? null : v; }
+function isOn(id) { return ['on', 'open', 'playing'].indexOf(st(id)) >= 0; }
+function dom(id) { return id.split('.')[0]; }
+function hhmm(d) { return d.toLocaleTimeString(C.locale, {hour: '2-digit', minute: '2-digit', hour12: !C.clock_24h}); }
+function heating(id) { return id && (dom(id) === 'climate' ? at(id, 'hvac_action') === 'heating' : isOn(id)); }
+var STOPS = [[17, [91, 155, 213]], [19, [111, 183, 176]], [20, [150, 196, 154]], [21, [232, 193, 112]], [23.5, [232, 131, 90]]];
+function tempRgb(t) {
+  if (t == null) return [150, 150, 150];
+  if (t <= STOPS[0][0]) return STOPS[0][1];
+  for (var i = 1; i < STOPS.length; i++) {
+    if (t <= STOPS[i][0]) {
+      var a = STOPS[i - 1], b = STOPS[i], f = (t - a[0]) / (b[0] - a[0]);
+      return [0, 1, 2].map(function (j) { return Math.round(a[1][j] + (b[1][j] - a[1][j]) * f); });
+    }
+  }
+  return STOPS[STOPS.length - 1][1];
+}
+
+function head(title, meta) {
+  return '<h2>' + esc(title) + '<button class="x" data-act="close">' + ic('close') + '</button></h2>' + (meta ? '<div class="meta">' + meta + '</div>' : '');
+}
+function trvBlock(trv, demand, name) {
+  var mode = st(trv), tgt = at(trv, 'temperature'), heating = at(trv, 'hvac_action') === 'heating';
+  var d = demand ? num(demand) : null;
+  var a = (mode === 'off' ? 'Radiator off' : heating ? 'Heating' : 'Idle') + (d ? ' · ' + Math.round(d) + '% open' : '');
+  var v = mode === 'off' ? 'Off' : tgt != null ? Number(tgt).toFixed(1) + '°' : '–';
+  if (name) {
+    return '<div class="trv compact' + (heating ? ' heating' : '') + '"><div class="nm">' + esc(name) + '<small>' + (at(trv, 'current_temperature') || '–') + '° now</small></div>' +
+      '<button class="pm" data-act="tdown" data-e="' + trv + '">' + ic('minus') + '</button><div class="tgt"><div class="v">' + v + '</div><div class="a">' + a + '</div></div>' +
+      '<button class="pm" data-act="tup" data-e="' + trv + '">' + ic('plus') + '</button></div>';
+  }
+  return '<div class="trv' + (heating ? ' heating' : '') + '"><button class="pm" data-act="tdown" data-e="' + trv + '">' + ic('minus') + '</button>' +
+    '<div class="tgt"><div class="v">' + v + '</div><div class="a">' + a + '</div></div>' +
+    '<button class="pm" data-act="tup" data-e="' + trv + '">' + ic('plus') + '</button></div>' +
+    '<div class="modes">' + (at(trv, 'hvac_modes') || ['off', 'heat']).map(function (m) {
+      return '<button data-act="mode" data-e="' + trv + '" data-mode="' + m + '" class="' + (mode === m ? 'sel' : '') + '">' + m[0].toUpperCase() + m.slice(1) + '</button>';
+    }).join('') + '</div>';
+}
+function lightRow(l) {
+  var on = isOn(l.e);
+  var b = at(l.e, 'brightness');
+  var html = '<div class="row' + (on ? ' on' : '') + '">' + ic(l.icon) + '<span>' + esc(l.name) + '</span>';
+  if (l.dim && on) html += '<input type="range" min="1" max="100" value="' + Math.round((b || 255) / 2.55) + '" data-act="dim" data-e="' + l.e + '">';
+  return html + '<button class="sw" data-act="toggle" data-e="' + l.e + '" aria-label="toggle"></button></div>';
+}
+
+function problem(message) { if (PROBLEMS.indexOf(message) < 0) PROBLEMS.push(message); }
+function showProblems() {
+  $('problems').textContent = PROBLEMS.length ? 'config.json: ' + PROBLEMS.join(' · ') : '';
+  $('problems').classList.toggle('hidden', !PROBLEMS.length);
+}
+function object(v, path) {
+  if (v == null) return {};
+  if (typeof v !== 'object' || Array.isArray(v)) { problem(path + ' must be an object'); return {}; }
+  return v;
+}
+function list(v, path) {
+  if (v == null) return [];
+  if (!Array.isArray(v)) { problem(path + ' must be a list'); return []; }
+  return v;
+}
+function use(id, role) {
+  if (id == null || id === '') return null;
+  if (typeof id !== 'string' || !/^[a-z_]+\.[a-z0-9_]+$/.test(id)) { problem('Not an entity id: ' + JSON.stringify(id)); return null; }
+  if (ENTITIES.indexOf(id) < 0) ENTITIES.push(id);
+  if (!ROLE[id]) ROLE[id] = role;
+  return id;
+}
+function icon(name) {
+  if (name && !ICONS[name]) problem('Unknown icon: ' + name);
+  return ICONS[name] ? name : 'ceiling-light';
+}
+function readConfig(config) {
+  C = object(config, 'config');
+  C.theme = C.theme || 'auto';
+  if (['auto', 'light', 'dark'].indexOf(C.theme) < 0) { problem('theme must be auto, light or dark'); C.theme = 'auto'; }
+  C.locale = C.locale || 'en-GB';
+  try { new Date().toLocaleDateString(C.locale); } catch (e) { problem('Invalid locale'); C.locale = 'en-GB'; }
+  if (C.clock_24h != null && typeof C.clock_24h !== 'boolean') problem('clock_24h must be true or false');
+  C.clock_24h = C.clock_24h !== false;
+  document.title = C.title || 'Floor Panel';
+  C.header = object(C.header, 'header');
+  ['weather', 'heating', 'alarm'].forEach(function (key) { C.header[key] = use(C.header[key], key); });
+  C.bins = list(C.bins, 'bins').map(function (b) {
+    b = object(b, 'bin');
+    if (b.colour && !/^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(b.colour)) problem('Bin colour must be a hex colour');
+    return {e: use(b.entity, 'calendar'), name: b.name || 'Collection', colour: /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(b.colour) ? b.colour : '#3f8f5b'};
+  });
+  C.doorbell = object(C.doorbell, 'doorbell');
+  C.doorbell.when = use(C.doorbell.when, 'doorbell');
+  C.doorbell.camera = use(C.doorbell.camera, 'camera');
+  if (!!C.doorbell.when !== !!C.doorbell.camera) problem('doorbell needs both when and camera');
+  $('v-title').textContent = C.doorbell.title || 'Visitor';
+  var configured = object(C.rooms, 'rooms');
+  Object.keys(configured).forEach(function (name) {
+    if (!P.rooms.some(function (r) { return r.name === name; })) problem('Unknown room: ' + name);
+  });
+  ROOMS = P.rooms.map(function (shape, i) {
+    var raw = object(Object.prototype.hasOwnProperty.call(configured, shape.name) ? configured[shape.name] : null, 'rooms.' + shape.name);
+    if (shape.kind === 'bathroom') {
+      if (Object.keys(raw).length) problem(shape.name + ' is a bathroom and must stay plain');
+      raw = {};
+    }
+    var r = {key: i, name: shape.name, title: shape.display || shape.name, floor: shape.floor || 'Home', polygon: shape.polygon, label: shape.label, radius: shape.label_radius, wet: shape.kind === 'bathroom'};
+    [['temperature', 'temp'], ['humidity', 'hum'], ['climate', 'trv'], ['heating_demand', 'demand'], ['presence', 'presence'], ['media', 'media'], ['cover', 'cover']].forEach(function (pair) {
+      r[pair[1]] = use(raw[pair[0]], pair[1] === 'demand' ? 'demand' : pair[0]);
+    });
+    r.motion = list(raw.motion, r.name + '.motion').map(function (id) { return use(id, 'motion'); }).filter(Boolean);
+    r.lights = list(raw.lights, r.name + '.lights').map(function (l) {
+      l = object(l, 'light');
+      var point = l.at || r.label;
+      if (!Array.isArray(point) || point.length !== 2 || !point.every(Number.isFinite) || !inside(point, r.polygon)) {
+        problem(r.name + ': light at must be a point inside the room'); point = r.label;
+      }
+      return {e: use(l.entity, 'light'), name: l.name || 'Light', icon: icon(l.icon), at: point, dim: typeof l.entity === 'string' && l.entity.indexOf('light.') === 0};
+    }).filter(function (l) { return l.e; });
+    r.windows = list(raw.windows, r.name + '.windows').map(function (w) {
+      w = object(w, 'window');
+      var id = use(w.entity, 'window');
+      if (!Number.isInteger(w.window) || !P.windows[w.window]) { problem(r.name + ': invalid window index ' + w.window); return null; }
+      return {e: id, name: w.name || 'Window ' + w.window, index: w.window};
+    }).filter(function (w) { return w && w.e; });
+    r.active = !r.wet && !!(r.temp || r.hum || r.trv || r.demand || r.presence || r.media || r.cover || r.lights.length || r.windows.length || r.motion.length);
+    return r;
+  });
+  use('sun.sun', 'sun');
+  floors = ROOMS.map(function (r) { return r.floor; }).filter(function (f, i, a) { return a.indexOf(f) === i; });
+  try { floor = localStorage.getItem('floorPanelFloor:' + location.pathname); } catch (e) {}
+  if (floors.indexOf(floor) < 0) floor = floors[0];
+  showProblems();
+}
+function inside(p, poly) {
+  var hit = false;
+  poly.forEach(function (a, i) { var b = poly[(i + 1) % poly.length];
+    if ((a[1] > p[1]) !== (b[1] > p[1]) && p[0] < (b[0] - a[0]) * (p[1] - a[1]) / (b[1] - a[1]) + a[0]) hit = !hit;
+  });
+  return hit;
+}
+function el(tag, attrs, parent) {
+  var e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+  parent.appendChild(e); return e;
+}
+function points(poly) { return poly.map(function (p) { return p.join(','); }).join(' '); }
+function line(segment, cls, parent) { return el('line', {x1: segment.a[0], y1: segment.a[1], x2: segment.b[0], y2: segment.b[1], 'class': cls}, parent); }
+function onEdge(p, poly) {
+  return poly.some(function (a, i) {
+    var b = poly[(i + 1) % poly.length], dx = b[0] - a[0], dy = b[1] - a[1], len = dx * dx + dy * dy || 1;
+    var t = Math.max(0, Math.min(1, ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / len));
+    return Math.abs(a[0] + t * dx - p[0]) + Math.abs(a[1] + t * dy - p[1]) < 2;
+  });
+}
+function floorVisible(shape) { return !shape.floors || shape.floors.indexOf(floor) >= 0; }
+function drawPlan() {
+  $('floors').classList.toggle('hidden', floors.length < 2);
+  $('floors').innerHTML = floors.map(function (f, i) { return '<button data-floor="' + i + '" class="' + (f === floor ? 'sel' : '') + '" aria-pressed="' + (f === floor) + '">' + esc(f) + '</button>'; }).join('');
+  var svg = $('plan'), visible = ROOMS.filter(function (r) { return r.floor === floor; });
+  var vertices = [].concat.apply([], visible.map(function (r) { return r.polygon; }));
+  var xs = vertices.map(function (p) { return p[0]; }), ys = vertices.map(function (p) { return p[1]; });
+  var x = Math.min.apply(null, xs), y = Math.min.apply(null, ys), w = Math.max.apply(null, xs) - x, h = Math.max.apply(null, ys) - y;
+  var pad = Math.max(w, h) * .03, wall = Math.max(w, h) * .011;
+  svg.setAttribute('viewBox', [x - pad, y - pad, w + pad * 2, h + pad * 2].join(' '));
+  ['wall', 'door', 'win', 'exit'].forEach(function (k, i) { svg.style.setProperty('--' + k + '-w', (wall * [1, 1.3, 2.4, 3.4][i]).toFixed(2)); });
+  svg.innerHTML = '<defs><radialGradient id="glow"><stop offset="0" stop-color="#ffc86e" stop-opacity=".95"/><stop offset=".35" stop-color="#ffbe5a" stop-opacity=".45"/><stop offset="1" stop-color="#ffb450" stop-opacity="0"/></radialGradient><radialGradient id="heat"><stop offset="0" stop-color="#ff7043" stop-opacity=".55"/><stop offset="1" stop-color="#ff7043" stop-opacity="0"/></radialGradient></defs>';
+  var defs = svg.firstChild, walls = el('g', {}, svg), shapes = el('g', {}, svg), decor = el('g', {}, svg), labels = el('g', {}, svg);
+  // a thick wall band under every room; the room fills cover its inner half, so outside walls stay thick
+  visible.forEach(function (r) { el('polygon', {points: points(r.polygon), 'class': 'outer'}, walls); });
+  visible.forEach(function (r) {
+    r.shape = el('polygon', {points: points(r.polygon), 'class': 'room' + (r.active ? ' tap' : ' wet'), fill: 'var(--floor)'}, shapes);
+    if (r.active) { r.shape.setAttribute('data-room', r.key); r.shape.setAttribute('tabindex', '0'); r.shape.setAttribute('role', 'button'); r.shape.setAttribute('aria-label', r.name); }
+    var clip = el('clipPath', {id: 'room-clip-' + r.key}, defs);
+    el('polygon', {points: points(r.polygon)}, clip);
+    var effects = el('g', {'clip-path': 'url(#room-clip-' + r.key + ')'}, decor);
+    r.heatGlow = el('circle', {cx: r.label[0], cy: r.label[1], r: r.radius * 1.8, fill: 'url(#heat)', opacity: 0}, effects);
+    r.lights.forEach(function (l) { l.glow = el('circle', {cx: l.at[0], cy: l.at[1], r: r.radius * 1.8, fill: 'url(#glow)', opacity: 0}, effects); });
+    r.motionEl = el('polygon', {points: points(r.polygon), 'class': 'motion'}, effects);
+    var g = el('g', {transform: 'translate(' + r.label.join(' ') + ')', 'text-anchor': 'middle'}, labels);
+    // Text stays upright after generator rotation. All labels fit inside the free circle.
+    var scale = Math.min(1.5, r.radius / 85, 1.6 * r.radius / Math.max(1, r.title.length * 11));
+    g.setAttribute('transform', 'translate(' + r.label.join(' ') + ') scale(' + scale + ')');
+    el('text', {'class': 'rn', y: r.active ? -32 : 5}, g).textContent = r.title;
+    r.tempEl = el('text', {'class': 'rt', y: 13}, g);
+    r.humEl = el('text', {'class': 'rh', y: 36}, g);
+    r.flagEl = el('text', {'class': 'flag', y: 59}, g);
+  });
+  P.stairs.filter(floorVisible).forEach(function (s, i) {
+    var clip = el('clipPath', {id: 'stair-' + i}, defs); el('polygon', {points: points(s.polygon)}, clip);
+    el('polygon', {points: points(s.polygon), 'class': 'stairs'}, decor);
+    var sx = s.polygon.map(function (p) { return p[0]; }), sy = s.polygon.map(function (p) { return p[1]; });
+    var left = Math.min.apply(null, sx), right = Math.max.apply(null, sx), top = Math.min.apply(null, sy), bottom = Math.max.apply(null, sy);
+    var treads = el('g', {'clip-path': 'url(#stair-' + i + ')'}, decor);
+    for (var n = 1; n < 10; n++) line({a: [left, top + (bottom - top) * n / 10], b: [right, top + (bottom - top) * n / 10]}, 'tread', treads);
+  });
+  ['doors', 'windows'].forEach(function (key) {
+    P[key].forEach(function (s, i) {
+      if (!floorVisible(s)) return;
+      // a door on one room only is an outside door: it cuts through the thicker outside wall
+      var outside = key === 'doors' && visible.filter(function (r) { return onEdge(s.a, r.polygon) && onEdge(s.b, r.polygon); }).length < 2;
+      s.el = line(s, key === 'doors' ? 'door' + (outside ? ' exit' : '') : 'win', decor);
+      if (key === 'windows') {
+        var dx = s.b[0] - s.a[0], dy = s.b[1] - s.a[1];
+        s.casement = line({a: s.a, b: [s.a[0] + dx * .85 - dy * .35, s.a[1] + dy * .85 + dx * .35]}, 'winopen', decor);
+        s.casement.setAttribute('opacity', 0);
+      }
+      if (SETUP) {
+        var label = el('text', {x: (s.a[0] + s.b[0]) / 2, y: (s.a[1] + s.b[1]) / 2 + 6, 'text-anchor': 'middle', 'class': 'setup-label', 'font-size': pad * .7}, labels);
+        label.textContent = (key === 'windows' ? 'W' : 'D') + i;
+      }
+    });
+  });
+}
+function renderClock() {
+  var now = new Date(), night = C.theme === 'dark' || (C.theme === 'auto' && st('sun.sun') === 'below_horizon');
+  document.body.classList.toggle('night', night); document.body.classList.toggle('light', !night);
+  $('time').textContent = hhmm(now);
+  $('date').textContent = now.toLocaleDateString(C.locale, {weekday: 'long', month: 'long', day: 'numeric'});
+  var sunNight = st('sun.sun') === 'below_horizon';
+  var rise = new Date(at('sun.sun', 'next_rising')), set = new Date(at('sun.sun', 'next_setting'));
+  var start = (sunNight ? set : rise).getTime() - 86400000, end = (sunNight ? rise : set).getTime();
+  var f = isFinite(start) && isFinite(end) && end > start ? Math.max(0, Math.min(1, (Date.now() - start) / (end - start))) : .5;
+  var a = Math.PI * (1 - f);
+  $('sunarc').innerHTML = '<path d="M10 40A85 34 0 0 1 180 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 4" opacity=".35"/><line x1="0" y1="40" x2="190" y2="40" stroke="currentColor" opacity=".25"/><circle cx="' + (95 + 85 * Math.cos(a)) + '" cy="' + (40 - 34 * Math.sin(a)) + '" r="6" fill="' + (sunNight ? '#cfd8e6' : '#ffb300') + '"/>';
+  $('wxsub').textContent = isFinite(end) ? (sunNight ? 'Sunrise ' : 'Sunset ') + hhmm(new Date(end)) : '';
+  var weather = C.header.weather, value = at(weather, 'temperature');
+  var wx = {'clear-night': 'night', partlycloudy: 'partly-cloudy', exceptional: 'cloudy'};
+  var name = 'weather-' + (wx[st(weather)] || st(weather));
+  $('wxnow').innerHTML = weather ? ic(ICONS[name] ? name : 'weather-cloudy') + (value == null ? '–' : Math.round(value) + '°') : '';
+}
+function renderRoom(r) {
+  if (r.floor !== floor) return;
+  var t = num(r.temp), night = document.body.classList.contains('night');
+  var base = night ? [17, 27, 44] : [247, 244, 238], tint = night ? .3 : .42, c = r.temp && t != null ? tempRgb(t) : null;
+  r.shape.setAttribute('fill', c ? 'rgb(' + base.map(function (b, i) { return Math.round(b + (c[i] - b) * tint); }).join(',') + ')' : 'var(--floor)');
+  r.tempEl.textContent = r.temp ? (t == null ? '–' : t.toFixed(1) + '°') : '';
+  r.humEl.textContent = r.hum && num(r.hum) != null ? Math.round(num(r.hum)) + '% humidity' : '';
+  r.lights.forEach(function (l) { var brightness = at(l.e, 'brightness'); l.glow.setAttribute('opacity', isOn(l.e) ? (brightness == null ? 1 : .45 + .55 * brightness / 255) * (night ? .7 : 1) : 0); });
+  var heat = heating(r.trv) || num(r.demand) > 0;
+  r.heatGlow.setAttribute('opacity', heat ? .5 + .5 * Math.min(100, num(r.demand) || 50) / 100 : 0);
+  r.motionEl.setAttribute('class', 'motion' + (r.motion.some(isOn) ? ' on' : ''));
+  var flags = [];
+  if (r.windows.some(function (w) { return isOn(w.e); })) flags.push('window');
+  if (heat) flags.push('heating');
+  if (isOn(r.presence)) flags.push('presence');
+  if (r.motion.some(isOn)) flags.push('motion');
+  if (st(r.media) === 'playing') flags.push('♪');
+  r.flagEl.textContent = flags.join(' · ');
+  if (flags.join(' · ').length > 20) { r.flagEl.setAttribute('textLength', 180); r.flagEl.setAttribute('lengthAdjust', 'spacingAndGlyphs'); }
+  else r.flagEl.removeAttribute('textLength');
+}
+function openWindows() {
+  var out = [];
+  ROOMS.forEach(function (r) { r.windows.forEach(function (w) { if (isOn(w.e)) out.push(r.name + ' · ' + w.name); }); }); return out;
+}
+function lightsOn() {
+  var out = [];
+  ROOMS.forEach(function (r) { r.lights.forEach(function (l) { if (isOn(l.e)) out.push(l); }); }); return out;
+}
+function nextBins() {
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  return C.bins.map(function (b) { return {name: b.name, colour: b.colour, date: new Date(String(at(b.e, 'start_time') || '').replace(' ', 'T'))}; })
+    .filter(function (b) { return b.date >= today; }).sort(function (a, b) { return a.date - b.date; });
+}
+function dayWord(date) {
+  var today = new Date(); today.setHours(0, 0, 0, 0);
+  var d = new Date(date); d.setHours(0, 0, 0, 0);
+  var days = Math.round((d - today) / 86400000);
+  return days === 0 ? 'today' : days === 1 ? 'tomorrow' : date.toLocaleDateString(C.locale, {weekday: 'long'});
+}
+function chip(iconName, text, cls) { return '<div class="chip ' + (cls || '') + '">' + ic(iconName) + esc(text) + '</div>'; }
+function renderChips() {
+  var wins = openWindows(), heat = ROOMS.filter(function (r) { return heating(r.trv) || num(r.demand) > 0; }).length;
+  var html = chip(wins.length ? 'window-open-variant' : 'window-closed-variant', wins.length ? wins.length + (wins.length === 1 ? ' window open' : ' windows open') : 'Windows shut', wins.length ? 'cool' : 'ok');
+  if (C.header.heating || ROOMS.some(function (r) { return r.trv; })) html += chip('radiator', heat ? 'Heating · ' + heat + ' rooms' : heating(C.header.heating) ? 'Heating on' : 'Heating off', heat ? 'hot' : '');
+  var bin = nextBins()[0];
+  if (bin) html += '<div class="chip">' + ic('trash-can-outline') + '<span style="color:' + bin.colour + '">' + esc(bin.name + ' ' + dayWord(bin.date)) + '</span></div>';
+  var alarm = st(C.header.alarm);
+  if (alarm) html += chip(alarm === 'disarmed' ? 'shield-off-outline' : 'shield-check', (alarm.charAt(0).toUpperCase() + alarm.slice(1)).replace(/_/g, ' '), alarm === 'disarmed' ? '' : 'ok');
+  $('chips').innerHTML = html;
+  var box = $('chips');   // drop chips from the end until the row fits
+  while (box.children.length > 1 && (box.scrollWidth > box.clientWidth + 1 || box.scrollHeight > box.clientHeight + 1)) box.removeChild(box.lastChild);
+  $('a-off').className = 'act' + (armed ? ' arm' : lightsOn().length ? ' on' : '');
+  $('a-off').innerHTML = ic('lightbulb-group-off-outline') + (armed ? 'Tap again' : 'All off');
+  $('a-heat').innerHTML = ic('radiator') + 'Heating';
+  $('a-bed').innerHTML = ic('weather-night') + 'Bedtime';
+}
+function showSheet(fn) { openSheet = fn; $('sheet').innerHTML = fn(); $('scrim').classList.remove('hidden'); }
+function closeSheet() { openSheet = null; $('scrim').classList.add('hidden'); }
+function roomSheet(r) {
+  var meta = r.temp ? (num(r.temp) == null ? '–' : num(r.temp).toFixed(1) + '°') : '';
+  if (r.hum && num(r.hum) != null) meta += ' · ' + Math.round(num(r.hum)) + '% humidity';
+  var html = head(r.title, esc(meta));
+  if (r.trv) html += trvBlock(r.trv, r.demand);
+  html += '<div class="rows">' + r.lights.map(lightRow).join('');
+  if (r.cover) html += '<div class="row">' + ic('blinds') + '<span>Blind</span><span class="st">' + esc(st(r.cover)) + '</span><button class="go sec" data-act="open_cover" data-e="' + r.cover + '">Open</button><button class="go sec" data-act="close_cover" data-e="' + r.cover + '">Close</button></div>';
+  if (r.media) html += '<button class="row" data-act="media_play_pause" data-e="' + r.media + '">' + ic('speaker') + '<span>' + esc(at(r.media, 'media_title') || 'Speaker') + '</span><span class="st">' + esc(st(r.media) || '–') + '</span></button>';
+  if (r.presence) html += '<div class="row">' + ic('account') + (isOn(r.presence) ? 'Someone is here' : 'Nobody here') + '</div>';
+  r.motion.forEach(function (m, i) { html += '<div class="row">' + ic('motion-sensor') + 'Motion ' + (i + 1) + '<span class="st">' + (isOn(m) ? 'Motion now' : 'Clear') + '</span></div>'; });
+  r.windows.forEach(function (w) { html += '<div class="row">' + ic(isOn(w.e) ? 'window-open-variant' : 'window-closed-variant') + '<span>' + esc(w.name) + '</span><span class="st">' + (isOn(w.e) ? 'Open' : 'Closed') + '</span></div>'; });
+  return html + '</div>';
+}
+function heatingSheet() { return head('Heating') + '<div class="rows">' + ROOMS.filter(function (r) { return r.trv; }).map(function (r) { return trvBlock(r.trv, r.demand, r.name); }).join('') + '</div>'; }
+var confirmArm = false;
+function bedtimeSheet() {
+  var html = head('Bedtime check', 'Everything worth a look before bed'), rows = '';
+  openWindows().forEach(function (w) { rows += '<div class="row open">' + ic('window-open-variant') + esc(w) + '</div>'; });
+  if (lightsOn().length) rows += '<div class="row on">' + ic('lightbulb-group-outline') + lightsOn().length + ' lights on<button class="go" data-act="alloff">Turn off</button></div>';
+  var bin = nextBins()[0];
+  if (bin && ['today', 'tomorrow'].indexOf(dayWord(bin.date)) >= 0) rows += '<div class="row">' + ic('trash-can-outline') + esc(bin.name + ' ' + dayWord(bin.date)) + '</div>';
+  if (st(C.header.alarm) === 'disarmed') rows += '<div class="row">' + ic('shield-off-outline') + 'Alarm off<button class="go" data-act="armnight">' + (confirmArm ? 'Tap to confirm' : 'Arm night') + '</button></div>';
+  return html + (rows ? '<div class="rows">' + rows + '</div>' : '<div class="allclear">' + ic('check-circle-outline') + 'All set for the night</div>');
+}
+function call(id, service, data) {
+  if (!id) return;
+  return ha.callService(dom(id), service, data || {}, id).catch(function (e) { problem('Could not ' + service + ': ' + (e.message || 'service failed')); showProblems(); });
+}
+function allOff() { lightsOn().forEach(function (l) { call(l.e, 'turn_off'); }); }
+function renderVisitor() {
+  var bell = C.doorbell, on = isOn(bell.when);
+  if (!on) visitorDismissed = false;
+  var show = on && !visitorDismissed && bell.camera;
+  $('visitor').classList.toggle('hidden', !show);
+  if (show && !camTimer) {
+    var tick = function () {
+      var pic = at(bell.camera, 'entity_picture');
+      if (pic) $('v-img').src = pic.indexOf('data:') === 0 ? pic : ha.url(pic) + (pic.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+    }; tick(); camTimer = setInterval(tick, 2000);
+  } else if (!show && camTimer) { clearInterval(camTimer); camTimer = null; }
+}
+function render() {
+  renderClock(); ROOMS.forEach(renderRoom);
+  if (Object.keys(S).length && !document.body.classList.contains('live')) setTimeout(function () { document.body.classList.add('live'); }, 50);
+  P.windows.forEach(function (s, index) {
+    if (!floorVisible(s) || !s.el) return;
+    var open = ROOMS.some(function (r) { return r.floor === floor && r.windows.some(function (w) { return w.index === index && isOn(w.e); }); });
+    s.el.setAttribute('class', 'win' + (open ? ' open' : '')); s.casement.setAttribute('opacity', open ? 1 : 0);
+  });
+  renderChips(); renderVisitor(); if (openSheet) $('sheet').innerHTML = openSheet();
+}
+function wire() {
+  $('floors').addEventListener('click', function (e) { var b = e.target.closest('[data-floor]'); if (!b) return;
+    floor = floors[+b.getAttribute('data-floor')]; try { localStorage.setItem('floorPanelFloor:' + location.pathname, floor); } catch (err) {}
+    drawPlan(); render();
+  });
+  function openRoom(e) { var b = e.target.closest('[data-room]'); if (b) { var r = ROOMS[+b.getAttribute('data-room')]; showSheet(function () { return roomSheet(r); }); } }
+  $('plan').addEventListener('click', openRoom);
+  $('plan').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRoom(e); } });
+  $('a-off').addEventListener('click', function () {
+    if (!lightsOn().length) return;
+    if (armed) { armed = false; clearTimeout(armTimer); allOff(); }
+    else { armed = true; armTimer = setTimeout(function () { armed = false; renderChips(); }, 3000); }
+    renderChips();
+  });
+  $('a-heat').addEventListener('click', function () { showSheet(heatingSheet); });
+  $('a-bed').addEventListener('click', function () { confirmArm = false; showSheet(bedtimeSheet); });
+  $('scrim').addEventListener('click', function (e) { if (e.target === $('scrim')) closeSheet(); });
+  $('v-close').addEventListener('click', function () { visitorDismissed = true; renderVisitor(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeSheet(); });
+  $('sheet').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b) return;
+    var action = b.getAttribute('data-act'), id = b.getAttribute('data-e');
+    if (action === 'close') return closeSheet();
+    if (action === 'alloff') return allOff();
+    if (action === 'armnight') { if (confirmArm) { confirmArm = false; call(C.header.alarm, 'alarm_arm_night'); } else { confirmArm = true; $('sheet').innerHTML = openSheet(); } return; }
+    if (action === 'tup' || action === 'tdown') {
+      var target = Number(at(id, 'temperature')), step = Number(at(id, 'target_temp_step')) || .5;
+      if (!isFinite(target)) return;
+      var lo = at(id, 'min_temp'), hi = at(id, 'max_temp');
+      call(id, 'set_temperature', {temperature: Math.max(lo == null ? 5 : lo, Math.min(hi == null ? 35 : hi, target + (action === 'tup' ? step : -step)))}); return;
+    }
+    if (action === 'mode') return call(id, 'set_hvac_mode', {hvac_mode: b.getAttribute('data-mode')});
+    if (['toggle', 'open_cover', 'close_cover', 'media_play_pause'].indexOf(action) >= 0) call(id, action);
+  });
+  $('sheet').addEventListener('change', function (e) { var b = e.target; if (b.getAttribute('data-act') === 'dim') call(b.getAttribute('data-e'), 'turn_on', {brightness: Math.round(Number(b.value) * 2.55)}); });
+}
+function fatal(message) {
+  problem(message);
+  document.body.innerHTML = '<div class="setup"><h1>Floor Panel setup</h1><p>' + esc(message) + '</p><p>Copy config.example.json to config.json beside index.html, then edit your entity ids. Keep plan.json in this folder too. README.md explains each setting.</p><p>Try <a href="?demo=1">the demo</a>, or add <code>?setup=1</code> to map window and door numbers.</p></div>';
+}
+function get(name) {
+  return fetch(name + '?t=' + Date.now(), {cache: 'no-store'}).then(function (r) {
+    if (!r.ok) { var e = new Error(name + ' could not be loaded (' + r.status + ')'); e.missing = r.status === 404; throw e; }
+    return r.text();
+  }).then(function (text) { try { return JSON.parse(text); } catch (e) { throw new Error(name + ' contains invalid JSON: ' + e.message); } });
+}
+Promise.all([get('plan.json'), get('config.json').catch(function (e) { if (DEMO && e.missing) return get('config.example.json'); throw e; })]).then(function (data) {
+  P = data[0]; readConfig(data[1]); drawPlan(); wire(); renderClock(); renderChips();
+  ha = HALite.create({entities: ENTITIES, roles: ROLE});
+  ha.on('states', function (states) { S = states; render(); window.__fw.ready = true; });
+  ha.on('status', function (status) { $('conn').className = status; });
+  setInterval(render, 15000);
+  return ha.start();
+}).catch(function (e) { fatal(e.message); });
+</script></body></html>
